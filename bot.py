@@ -125,29 +125,32 @@ async def add_point(user_id, chat_id, username) -> None:
     mydb.close()
 
 async def get_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Display the ranking"""
-    mydb = mysql.connector.connect(
-        host=db_host,
-        database=db_name,
-        user=db_user,
-        password=db_password,
-    )
-    mycursor = mydb.cursor()
-    sql = "SELECT username, count(date) AS points FROM ranking WHERE chat_id = " + str(update.effective_chat.id) + " GROUP BY username ORDER BY points DESC"
-    mycursor.execute(sql)
-    myresult = mycursor.fetchall()
-    ranking = "🏅 This is the top 10 ranking for the chat " + update.effective_chat.title + ":\n"
-    position = 1
-    actual_points = myresult[0][1]
-    for row in myresult:
-        if row[1] < actual_points:
-            position += 1
-            actual_points = row[1]
-        if position <= 10:
-            ranking += str(position) + ") [" + row[0] + "](https://t.me/" + row[0] + "): " + str(row[1]) + " points\n"
-    await update.message.reply_text(ranking, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
-    mycursor.close()
-    mydb.close()
+    if update.effective_chat.type == "private":
+        await update.message.reply_text("⚠️ This command is only for groups.")
+    else:
+        """Display the ranking"""
+        mydb = mysql.connector.connect(
+            host=db_host,
+            database=db_name,
+            user=db_user,
+            password=db_password,
+        )
+        mycursor = mydb.cursor()
+        sql = "SELECT username, count(date) AS points FROM ranking WHERE chat_id = " + str(update.effective_chat.id) + " GROUP BY username ORDER BY points DESC"
+        mycursor.execute(sql)
+        myresult = mycursor.fetchall()
+        ranking = "🏅 This is the top 10 ranking for the chat " + update.effective_chat.title + ":\n"
+        position = 1
+        actual_points = myresult[0][1]
+        for row in myresult:
+            if row[1] < actual_points:
+                position += 1
+                actual_points = row[1]
+            if position <= 10:
+                ranking += str(position) + ") [" + row[0] + "](https://t.me/" + row[0] + "): " + str(row[1]) + " points\n"
+        await update.message.reply_text(ranking, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
+        mycursor.close()
+        mydb.close()
 
 async def get_my_points(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display the ranking"""

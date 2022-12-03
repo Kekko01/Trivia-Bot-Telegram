@@ -42,21 +42,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Inform user about what this bot can do"""
     if update.effective_chat.type == "private":
         await update.effective_message.reply_text(
-            "Hi " + update.effective_user.name +
-            " 👋! I'm a trivia bot. I can give you a quiz. Use /quiz to get a quiz. For add me to your group, use click here: https://t.me/free_trivia_bot?startgroup=true"
+            (
+                f"Hi {update.effective_user.name}"
+                + " 👋! I'm a trivia bot. I can give you a quiz. Use /quiz to get a quiz. For add me to your group, use click here: https://t.me/free_trivia_bot?startgroup=true"
+            )
         )
+
     else:
         await update.effective_message.reply_text(
-            "Hi " + update.effective_chat.title +
-            " 👋! I'm a trivia bot. I can give you a quiz and send a group ranking. Use /quiz to get a quiz."
+            (
+                f"Hi {update.effective_chat.title}"
+                + " 👋! I'm a trivia bot. I can give you a quiz and send a group ranking. Use /quiz to get a quiz."
+            )
         )
 
 async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a quiz"""
     questions = (await trivia.question(amount=1, category=0, difficulty=None, quizType=None))[0]
-    all_options=[]
-    for question in questions["incorrect_answers"]:
-        all_options.append(question)
+    all_options = list(questions["incorrect_answers"])
     all_options.append(questions["correct_answer"])
     random.shuffle(all_options)
     correct_position = all_options.index(questions["correct_answer"])
@@ -80,14 +83,14 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     poll_id = update.poll_answer.poll_id
     # Get the payload from the bot_data
     payload = context.bot_data[poll_id]
-    # Get the chat_id and message_id from the payload
-    chat_id = payload["chat_id"]
     # Get the correct_option_id from the payload
     correct_option_id = payload["correct_option_id"]
     # Get the answer from the user
     answer = update.poll_answer.option_ids[0]
     # Check if the answer is correct
     if answer == correct_option_id:
+        # Get the chat_id and message_id from the payload
+        chat_id = payload["chat_id"]
         # Add a point for correct answer
         await add_point(update.poll_answer.user.id, chat_id, update.poll_answer.user.username)
 
@@ -136,10 +139,15 @@ async def get_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             password=db_password,
         )
         mycursor = mydb.cursor()
-        sql = "SELECT username, count(date) AS points FROM ranking WHERE chat_id = " + str(update.effective_chat.id) + " GROUP BY username ORDER BY points DESC"
+        sql = f"SELECT username, count(date) AS points FROM ranking WHERE chat_id = {str(update.effective_chat.id)} GROUP BY username ORDER BY points DESC"
+
         mycursor.execute(sql)
         myresult = mycursor.fetchall()
-        ranking = "🏅 This is the top 10 ranking for the chat " + update.effective_chat.title + ":\n"
+        ranking = (
+            f"🏅 This is the top 10 ranking for the chat {update.effective_chat.title}"
+            + ":\n"
+        )
+
         position = 1
         actual_points = myresult[0][1]
         for row in myresult:
@@ -147,7 +155,11 @@ async def get_ranking(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 position += 1
                 actual_points = row[1]
             if position <= 10:
-                ranking += str(position) + ") [" + row[0] + "](https://t.me/" + row[0] + "): " + str(row[1]) + " points\n"
+                ranking += (
+                    f"{str(position)}) [{row[0]}](https://t.me/{row[0]}): {str(row[1])}"
+                    + " points\n"
+                )
+
         await update.message.reply_text(ranking, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
         mycursor.close()
         mydb.close()
@@ -161,11 +173,12 @@ async def get_my_points(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         password=db_password,
     )
     mycursor = mydb.cursor()
-    sql = "SELECT count(date) AS points FROM ranking WHERE user_id = " + str(update.effective_user.id) + " GROUP BY username"
+    sql = f"SELECT count(date) AS points FROM ranking WHERE user_id = {str(update.effective_user.id)} GROUP BY username"
+
     mycursor.execute(sql)
     myresult = mycursor.fetchall()
     try:
-        ranking = "You have " + str(myresult[0][0]) + " points! 🧮\n"
+        ranking = f"You have {str(myresult[0][0])}" + " points! 🧮\n"
     except IndexError:
         ranking = "You have no points! ❎\n"
     await update.message.reply_text(ranking)

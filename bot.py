@@ -52,25 +52,30 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
 
 async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a quiz"""
-    questions = (await trivia.question(amount=1, category=0, difficulty=None, quizType=None))[0]
-    all_options=[]
-    for question in questions["incorrect_answers"]:
-        all_options.append(question)
-    all_options.append(questions["correct_answer"])
-    random.shuffle(all_options)
-    correct_position = all_options.index(questions["correct_answer"])
-    print(questions["correct_answer"])
+    question = (await trivia.question(amount=1, category=0, difficulty=None, quizType=None))[0]
+    
+    options = (question["incorrect_answers"])
+    options.append(question["correct_answer"])
+    random.shuffle(options)
+    correct_option = options.index(question["correct_answer"])
+    
     message = await update.effective_message.reply_poll(
-        f"❔ Category: {questions['category']}\n⚠️ Difficulty: {questions['difficulty']}\n{questions['question']}", all_options, type=Poll.QUIZ, correct_option_id=correct_position, is_anonymous=False
+        f"❔ Category: {questions['category']}\n⚠️ Difficulty: {question['difficulty']}\n{question['question']}",
+        options,
+        type=Poll.QUIZ,
+        correct_option_id=correct_option,
+        is_anonymous=False
     )
-    # Save some info about the poll the bot_data for later use in receive_quiz_answer
+
     payload = {
-        message.poll.id: {"chat_id": update.effective_chat.id,
-                          "message_id": message.message_id,
-                          "questions": all_options,
-                          "correct_option_id": correct_position}
+        message.poll.id: {
+            "chat_id": update.effective_chat.id,
+            "message_id": message.message_id,
+            "questions": options,
+            "correct_option_id": correct_option
+        }
     }
+    
     context.bot_data.update(payload)
 
 
